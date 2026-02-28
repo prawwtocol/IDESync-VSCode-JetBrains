@@ -59,9 +59,13 @@ class SyncStatusBarWidget(
                 syncService.isReconnecting() && syncService.isAutoReconnectEnabled() -> SPINNER_FRAMES[spinnerIndex].toString()
                 else -> "○"
             }
-            component.text = "$icon ${if (syncService.isAutoReconnectEnabled()) "IDE Sync On" else "Turn IDE Sync On"}"
+            val portInfo = if (syncService.isConnected() && syncService.getAssignedPort() != null) {
+                ":${syncService.getAssignedPort()}"
+            } else ""
+            component.text = "$icon ${if (syncService.isAutoReconnectEnabled()) "IDE Sync On$portInfo" else "Turn IDE Sync On"}"
             component.toolTipText = buildString {
-                if (syncService.isConnected()) append("Connected to VSCode\n")
+                if (syncService.isConnected()) append("Connected to VSCode on port ${syncService.getAssignedPort()}\n")
+                else if (syncService.isReconnecting()) append("Connecting to VSCode...\n")
                 append("Click to turn sync ${if (syncService.isAutoReconnectEnabled()) "off" else "on"}")
             }
             component.repaint()

@@ -41,4 +41,4 @@ If you can't establish a connection:
 
 ## Feedback & Issues
 
-Please report issues or suggestions on [GitHub](https://github.com/denisbalber/IDESync-VSCode-JetBrains/issues). 
+Please report issues or suggestions on [GitHub](https://github.com/secret/IDESync-VSCode-JetBrains/issues). 

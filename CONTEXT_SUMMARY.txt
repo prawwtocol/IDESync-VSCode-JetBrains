@@ -1,0 +1,240 @@
+================================================================================
+IDE SYNC PLUGIN - CONTEXT SUMMARY
+================================================================================
+Generated: 2026-02-28
+Current Version: 1.2.8 (VS Code), 1.2.8 (JetBrains)
+================================================================================
+
+PROJECT OVERVIEW:
+-----------------
+VSCode-JetBrains Sync Extension - плагин для синхронизации между VS Code/Cursor 
+и JetBrains IDE (PyCharm, IntelliJ, etc.). Позволяет переключаться между IDE 
+с сохранением позиции курсора и открытого файла.
+
+================================================================================
+PROBLEMS ADDRESSED IN THIS SESSION:
+================================================================================
+
+1. MULTI-PAIR SYNCHRONIZATION (Version 1.2.0 - 1.2.6)
+   -------------------------------------------------
+   Problem: Only one pair of IDEs could sync at a time. Second pair failed with
+   "Failed to start WebSocket server" or port conflicts.
+   
+   Solution: Implemented Discovery Server architecture
+   - Discovery Server on port 3000 for initial handshake
+   - Dynamic port assignment (3001, 3002, etc.) for each pair
+   - VS Code stops Discovery Server after pair is established
+   
+   Files Changed:
+   - vscode-extension/src/extension.ts
+   - jetbrains-plugin/src/.../VSCodeJetBrainsSyncService.kt
+
+2. WORKSPACE VALIDATION (Version 1.2.6)
+   -------------------------------------
+   Problem: JetBrains 2 could connect to VS Code 1's Discovery Server and get
+   wrong port assignment, causing connection to wrong pair.
+   
+   Solution: Added workspace validation in Discovery handshake
+   - JetBrains sends projectPath in hello message
+   - VS Code validates workspace match before assigning port
+   - Connection rejected with "Workspace mismatch" if paths don't match
+   
+   Files Changed:
+   - vscode-extension/src/extension.ts (discovery connection handler)
+   - jetbrains-plugin/src/.../VSCodeJetBrainsSyncService.kt (onOpen)
+
+3. DISCOVERY SERVER CONTROLS (Version 1.2.7)
+   -------------------------------------------
+   Problem: No visibility into Discovery Server state, no way to manually stop it.
+   
+   Solution: Added notifications and manual control
+   - Notification when Discovery Server stops ("Pair established")
+   - New command "Kill Discovery Server" in Command Palette
+   
+   Files Changed:
+   - vscode-extension/src/extension.ts
+   - vscode-extension/package.json (new command)
+
+4. SEPARATE DISCOVERY/DATA ENDPOINTS (Version 1.2.8)
+   --------------------------------------------------
+   Problem: Data Server accepted connections on /jetbrains endpoint, allowing
+   JetBrains 2 to accidentally connect to VS Code 1's Data Server directly.
+   
+   Solution: Separated endpoints
+   - Discovery Server: /jetbrains (port 3000)
+   - Data Server: /data (port 3001+)
+   - Data Server now rejects connections with invalid endpoint or missing pending connection
+   
+   Files Changed:
+   - vscode-extension/src/extension.ts (data server endpoint validation)
+   - jetbrains-plugin/src/.../VSCodeJetBrainsSyncService.kt (connect to /data)
+
+5. DISCOVERY SERVER ERROR NOTIFICATIONS (Version 1.2.8)
+   -----------------------------------------------------
+   Problem: When Discovery Server failed to start (e.g., port in use), user
+   wasn't notified and sync appeared to be "enabled" but didn't work.
+   
+   Solution: Added clear error notifications
+   - Error message when port 3000 is already in use
+   - Auto-reset of sync state to "disabled" when server fails to start
+   - Warning in toggleAutoReconnect if server didn't start
+   
+   Files Changed:
+   - vscode-extension/src/extension.ts (error handlers, toggleAutoReconnect)
+
+================================================================================
+CURRENT ARCHITECTURE (v1.2.8):
+================================================================================
+
+Discovery Phase:
+---------------
+1. VS Code starts Discovery Server on port 3000 (when sync enabled & not paired)
+2. JetBrains connects to ws://localhost:3000/jetbrains
+3. JetBrains sends: {type: "hello", projectPath: "/path/to/project"}
+4. VS Code validates workspace match
+5. VS Code assigns unique port and sends: {type: "port-assignment", port: N}
+6. VS Code starts Data Server on assigned port
+7. JetBrains disconnects from Discovery, connects to Data Server port
+8. VS Code stops Discovery Server, shows notification
+
+Data Phase:
+----------
+- Bidirectional WebSocket on assigned port (3001+) at /data endpoint
+- Sync: filePath, line, column, isActive, action
+- macOS window focusing via AppleScript
+- Data Server validates: endpoint must be /data, pending connection must exist, workspace must match
+
+================================================================================
+FILE LOCATIONS:
+================================================================================
+
+Source Code:
+-----------
+- vscode-extension/src/extension.ts          (main VS Code logic)
+- jetbrains-plugin/src/.../VSCodeJetBrainsSyncService.kt  (JetBrains service)
+- jetbrains-plugin/src/.../SyncStatusBarWidget.kt          (JetBrains UI)
+- jetbrains-plugin/src/.../SwitchToPairedIDEAction.kt      (JetBrains action)
+
+Build Outputs:
+-------------
+- vscode-extension/vscode-jetbrains-sync-1.2.7.vsix
+- jetbrains-plugin/build/distributions/vscode-jetbrains-sync-1.2.6.zip
+
+Configuration:
+-------------
+- vscode-extension/package.json                (version, commands, keybindings)
+- jetbrains-plugin/version.properties          (source of truth for version)
+- jetbrains-plugin/build.gradle.kts            (build config, version sync)
+
+================================================================================
+LOGS & DEBUGGING:
+================================================================================
+
+VS Code Extension Logs:
+- Location: ~/Library/Application Support/Cursor/User/globalStorage/secret.vscode-jetbrains-sync/logs/
+- Format: debug_port{PORT}_{TIMESTAMP}.log
+
+JetBrains Plugin Logs:
+- Location: ~/Library/Logs/JetBrains/PyCharm2025.3/idea.log
+- Search: "com.vscode.jetbrainssync"
+
+Persistent Pair Data:
+- VS Code: ~/Library/Application Support/Cursor/User/globalStorage/secret.vscode-jetbrains-sync/pairs.json
+- JetBrains: ~/Library/Application Support/JetBrains/PyCharm2025.3/ide-sync/pairs.json
+
+================================================================================
+KNOWN ISSUES & LIMITATIONS:
+================================================================================
+
+1. Discovery Server Race Condition:
+   - Fixed in 1.2.6 with workspace validation
+   - May still see "Workspace mismatch" rejects in logs (expected behavior)
+
+2. WebSocket Client Reuse:
+   - JetBrains plugin occasionally shows "WebSocketClient objects are not reuseable"
+   - Mitigated by creating new client instances on each connection attempt
+
+3. Port Availability:
+   - If ports 3000+ are in use by other apps, extension tries next available port
+   - Check logs for "Port X in use, trying port Y"
+
+================================================================================
+TESTING CHECKLIST:
+================================================================================
+
+Single Pair:
+-----------
+[ ] Install plugins in VS Code and PyCharm
+[ ] Enable sync in VS Code (status bar: "Turn IDE Sync On" -> "IDE Sync On:3001")
+[ ] Enable sync in PyCharm (status bar shows searching spinner)
+[ ] Verify connection established
+[ ] Test Cmd+Shift+I in VS Code (switches to PyCharm)
+[ ] Test Cmd+Shift+I in PyCharm (switches to VS Code)
+
+Multiple Pairs:
+--------------
+[ ] Close all IDE windows
+[ ] Open Pair 1 (VS Code 1 + PyCharm 1), enable sync, verify port 3001
+[ ] Wait for "Discovery server stopped" notification
+[ ] Open Pair 2 (VS Code 2 + PyCharm 2), enable sync, verify port 3002
+[ ] Verify Pair 1 commands don't affect Pair 2 and vice versa
+[ ] Check logs for "Workspace mismatch" rejects (should be followed by success)
+
+================================================================================
+COMMANDS:
+================================================================================
+
+VS Code Command Palette (Cmd+Shift+P):
+- "Toggle VSCode-JetBrains Sync"     - Enable/disable sync
+- "Switch to Paired IDE"             - Manual switch (same as Cmd+Shift+I)
+- "Kill Discovery Server"              - Force stop Discovery Server (v1.2.7+)
+
+JetBrains Actions:
+- "Switch to Paired IDE" (Cmd+Shift+I)
+- Click status bar widget to toggle sync
+
+================================================================================
+VERSION HISTORY:
+================================================================================
+
+1.2.8 (2026-02-28) - CURRENT
+- Separated Discovery (/jetbrains) and Data (/data) endpoints
+- Data Server now rejects invalid endpoint connections
+- Added clear error notifications when Discovery Server fails to start
+- Auto-reset sync state on server startup failure
+
+1.2.7 (2026-02-28)
+- Added Discovery Server stopped notification
+- Added "Kill Discovery Server" command
+
+1.2.6 (2026-02-28)
+- Added workspace validation in Discovery handshake
+- Fixed race condition with multiple pairs
+
+1.2.5 (2026-02-28)
+- Added port conflict checks
+- Added workspace validation logging
+
+1.2.4 (2026-02-28)
+- Added notifications for server status
+
+1.2.0-1.2.3
+- Initial Discovery Server architecture
+- Dynamic port assignment
+
+================================================================================
+NEXT STEPS / TODO:
+================================================================================
+
+Pending Feature Requests:
+- Add configurable port range (currently hardcoded 3000+)
+- Add connection retry with exponential backoff
+- Add UI for viewing connection history
+- Add setting to disable workspace validation (for cross-project sync)
+
+Optimization:
+- Reduce log verbosity in production
+- Add log rotation
+- Optimize WebSocket reconnection logic
+
+================================================================================

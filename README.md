@@ -7,7 +7,7 @@ A synchronization system that allows seamless switching between VSCode and JetBr
 ## Installation via Marketplace
 
 ### VSCode Extension
-Install directly from the [Visual Studio Code Marketplace](https://marketplace.visualstudio.com/items?itemName=denisbalber.vscode-jetbrains-sync)
+Install directly from the [Visual Studio Code Marketplace](https://marketplace.visualstudio.com/items?itemName=secret.vscode-jetbrains-sync)
 
 - Open VSCode
 - Go to Extensions (Ctrl+Shift+X)
@@ -69,7 +69,7 @@ The default port is 3000, this can be changed in the respective settings and mus
 
 1. Clone the repository
 ```bash
-git clone https://github.com/denisbalber/IDESync-VSCode-JetBrains.git
+git clone https://github.com/secret/IDESync-VSCode-JetBrains.git
 cd IDESync-VSCode-JetBrains
 ```
 

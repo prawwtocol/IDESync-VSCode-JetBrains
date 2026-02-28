@@ -5,6 +5,11 @@ plugins {
 }
 
 group = "com.vscode.jetbrainssync"
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+}
 version = file("version.properties").readLines().first().substringAfter("=").trim()
 
 repositories {
@@ -98,5 +103,9 @@ tasks {
             languageVersion = "1.8"
             freeCompilerArgs = listOf("-Xjvm-default=all")
         }
+    }
+
+    withType<JavaCompile>().configureEach {
+        options.release.set(17)
     }
 } 

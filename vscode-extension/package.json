@@ -1,12 +1,12 @@
 {
   "name": "vscode-jetbrains-sync",
-  "displayName": "IDE Sync - Connect to JetBrains IDE",
-  "version": "1.0.18",
-  "publisher": "denisbalber",
+  "displayName": "IDE Sync - Connect to JetBrains IDE (Cmd+I)",
+  "version": "1.3.5",
+  "publisher": "secret",
   "description": "VSCode extension for synchronizing with JetBrains IDE",
   "icon": "icon.png",
   "sponsor": {
-    "url": "https://ko-fi.com/denisbalber"
+    "url": "https://ko-fi.com/secret"
   },
 "keywords": [
     "JetBrains",
@@ -32,7 +32,7 @@
 ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/denisbalber/IDESync-VSCode-JetBrains"
+    "url": "https://github.com/secret/IDESync-VSCode-JetBrains"
   },
   "main": "dist/extension.js",
   "activationEvents": [
@@ -42,7 +42,43 @@
     "commands": [
       {
         "command": "vscode-jetbrains-sync.toggleAutoReconnect",
-        "title": "Toggle VSCode-JetBrains Sync"
+        "title": "Toggle VSCode-JetBrains Sync",
+        "category": "IDE Sync"
+      },
+      {
+        "command": "vscode-jetbrains-sync.switchToPairedIDE",
+        "title": "Switch to Paired IDE",
+        "category": "IDE Sync"
+      },
+      {
+        "command": "vscode-jetbrains-sync.killDiscoveryServer",
+        "title": "Kill Discovery Server",
+        "category": "IDE Sync"
+      }
+    ],
+    "menus": {
+      "commandPalette": [
+        {
+          "command": "vscode-jetbrains-sync.toggleAutoReconnect",
+          "when": "workspaceFolderCount > 0"
+        },
+        {
+          "command": "vscode-jetbrains-sync.switchToPairedIDE",
+          "when": "workspaceFolderCount > 0"
+        },
+        {
+          "command": "vscode-jetbrains-sync.killDiscoveryServer",
+          "when": "workspaceFolderCount > 0"
+        }
+      ]
+    },
+    "keybindings": [
+      {
+        "command": "vscode-jetbrains-sync.switchToPairedIDE",
+        "key": "cmd+i",
+        "mac": "cmd+i",
+        "win": "ctrl+i",
+        "linux": "ctrl+i"
       }
     ],
     "configuration": {
