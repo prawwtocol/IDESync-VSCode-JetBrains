@@ -20,18 +20,40 @@ The default port is 3000, this can be changed in the respective settings and mus
 - In Cursor: Settings > Extensions > IDE Sync - Connect to JetBrains IDE > Port
 - In JetBrains IDE: Settings > Tools > IDE Sync - Connect to VSCode > WebSocket Port
 
-## Usage
+## Usage (For Developers)
 
-1. Start both IDEs (Cursor and JetBrains)
-2. Make sure that the sync is activated in the status bar of both IDEs
-3. When you switch between IDEs, the current file and cursor position will be synchronized automatically
+### Initial Connection Setup
 
-## Features
+The sync process uses a two-phase handshake with dynamic port assignment:
 
-- Real-time synchronization of file opening and cursor position
-- Automatic reconnection on port changes
-- Status bar indicator showing connection status
-- Multi-pair support: multiple Cursor+JetBrains pairs can sync simultaneously on different ports
+1. **Start both IDEs** — open Cursor and your JetBrains IDE (e.g., PyCharm, IntelliJ)
+
+2. **Enable sync in Cursor** — click the status bar item or run `Toggle VSCode-JetBrains Sync` command (Cmd+Shift+P). This starts the **Discovery Server** on port 3000. The status bar will show `IDE Sync On:Searching...`
+
+3. **Enable sync in JetBrains** — click the status bar widget or use `Switch to Paired IDE` action. The plugin connects to the Discovery Server on port 3000 and sends a handshake message with the project path
+
+4. **Handshake & Port Assignment** — Cursor validates the workspace path matches, then assigns a unique port (3001, 3002, etc.) and starts the **Data Server**. JetBrains receives the port assignment and disconnects from Discovery
+
+5. **WebSocket Connection Established** — JetBrains connects to the Data Server on the assigned port. Cursor stops the Discovery Server (you'll see a "Discovery server stopped" notification). The status bar in both IDEs now shows the active port (e.g., `IDE Sync On:3001`)
+
+### Switching Between IDEs
+
+Once connected, use **Cmd+Shift+I** (or run `Switch to Paired IDE` command) to instantly switch between Cursor and JetBrains. The current file and cursor position are synchronized automatically.
+
+### Connection Flow Summary
+
+```
+Cursor (Discovery Server:3000) ←── JetBrains connects, sends projectPath
+         ↓
+Cursor validates workspace match
+         ↓
+Cursor assigns port, starts Data Server
+         ↓
+JetBrains connects to Data Server (port 3001+)
+         ↓
+Bidirectional sync active ──→ filePath, line, column, focus changes
+```
+
 
 ## Components
 
@@ -90,13 +112,3 @@ cd ..
 1. Build the plugin locally (see above)
 2. Install in JetBrains IDE: `Settings` > `Plugins` > `Manage Repositories,... (Settings symbol)` > `Install Plugin from Disk...` > Select `IDESync-VSCode-JetBrains/jetbrains-plugin/build/distributions/vscode-jetbrains-sync-1.2.8.zip`
 3. Restart JetBrains IDE
-
-## Current Dev Version
-
-**Version:** 1.2.8 (both Cursor and JetBrains)
-
-**Recent Changes:**
-- Multi-pair synchronization support (ports 3001, 3002, etc.)
-- Workspace validation for correct pair matching
-- Discovery Server architecture with dynamic port assignment
-- Clear error notifications for connection failures
